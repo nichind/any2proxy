@@ -1,0 +1,39 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - gosec
+    - bodyclose
+    - noctx
+    - errorlint
+    - nilerr
+    - contextcheck
+    - durationcheck
+    - forcetypeassert
+    - makezero
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+    - misspell
+    - gocritic
+    - copyloopvar
+    - usetesting
+    - nolintlint
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true

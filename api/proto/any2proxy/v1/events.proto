@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package any2proxy.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nichind/any2proxy/api/gen/any2proxy/v1;any2proxyv1";
+
+message Event {
+  uint32 event_version = 1;
+  string session_id = 2;
+  uint64 seq = 3;
+  google.protobuf.Timestamp ts = 4;
+  string type = 5;
+  string data_json = 6;
+}

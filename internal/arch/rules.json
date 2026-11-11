@@ -1,0 +1,22 @@
+{
+  "module": "github.com/nichind/any2proxy",
+  "layers": [
+    { "prefix": "internal/ir", "allow": [] },
+    { "prefix": "internal/ingest", "allow": ["internal/ir"] },
+    { "prefix": "internal/emit", "allow": ["internal/ir", "internal/fidelity"] },
+    { "prefix": "internal/fidelity", "allow": ["internal/ir"] },
+    { "prefix": "internal/caps", "allow": ["internal/ir"] },
+    { "prefix": "internal/runtime", "allow": ["internal/ir", "internal/caps"] },
+    { "prefix": "internal/supervisor", "allow": ["internal/ir", "internal/runtime"] },
+    { "prefix": "internal/service", "allow": ["internal/apierr", "internal/caps", "internal/emit", "internal/ingest", "internal/ir", "internal/runtime", "internal/supervisor", "internal/version"] },
+    { "prefix": "internal/transport", "allow": ["internal/apierr", "internal/service"] },
+    { "prefix": "internal/arch", "allow": [] },
+    { "prefix": "internal/version", "allow": [] },
+    { "prefix": "internal/cores", "allow": [] },
+    { "prefix": "internal/secretstore", "allow": [] },
+    { "prefix": "internal/subscription", "allow": ["internal/secretstore"] },
+    { "prefix": "cmd/", "allow": ["internal", "pkg"] },
+    { "prefix": "pkg/", "allow": ["internal"] },
+    { "prefix": "sdk/", "allow": [] }
+  ]
+}

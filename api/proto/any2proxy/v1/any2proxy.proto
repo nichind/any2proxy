@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package any2proxy.v1;
+
+import "any2proxy/v1/errors.proto";
+import "any2proxy/v1/events.proto";
+import "any2proxy/v1/types.proto";
+
+option go_package = "github.com/nichind/any2proxy/api/gen/any2proxy/v1;any2proxyv1";
+
+service Any2ProxyService {
+  rpc Capabilities(CapabilitiesRequest) returns (CapabilitiesResponse);
+  rpc Parse(ParseRequest) returns (ParseResponse);
+  rpc Compile(CompileRequest) returns (CompileResponse);
+  rpc Run(RunRequest) returns (RunResponse);
+  rpc Check(CheckRequest) returns (CheckResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Events(EventsRequest) returns (stream Event);
+}
+
+message CapabilitiesRequest {
+  string schema_version = 1;
+}
+
+message CapabilitiesResponse {
+  string schema_version = 1;
+  string abi_version = 2;
+  repeated string core_versions = 3;
+  repeated string protocols = 4;
+  repeated string transports = 5;
+  Error error = 6;
+}
+
+message ParseRequest {
+  bytes body = 1;
+  string format = 2;
+  string source_url = 3;
+}
+
+message ParseResponse {
+  Profile profile = 1;
+  Error error = 2;
+}
+
+message CompileRequest {
+  Profile profile = 1;
+  string core = 2;
+  bool strict = 3;
+}
+
+message CompileResponse {
+  bytes config = 1;
+  CapabilityReport report = 2;
+  Error error = 3;
+}
+
+message RunRequest {
+  Profile profile = 1;
+  string mode = 2;
+  string core = 3;
+  string request_id = 4;
+}
+
+message RunResponse {
+  string session_id = 1;
+  repeated Endpoint endpoints = 2;
+  Error error = 3;
+}
+
+message CheckRequest {
+  repeated Endpoint endpoints = 1;
+  uint32 timeout_seconds = 2;
+}
+
+message CheckResponse {
+  repeated Endpoint endpoints = 1;
+  Error error = 2;
+}
+
+message StopRequest {
+  string session_id = 1;
+}
+
+message StopResponse {
+  Error error = 1;
+}
+
+message EventsRequest {
+  string session_id = 1;
+  uint64 since_seq = 2;
+}

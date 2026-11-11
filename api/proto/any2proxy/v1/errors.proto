@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package any2proxy.v1;
+
+option go_package = "github.com/nichind/any2proxy/api/gen/any2proxy/v1;any2proxyv1";
+
+enum Code {
+  CODE_UNSPECIFIED = 0;
+  CODE_INVALID_INPUT = 1;
+  CODE_UNSUPPORTED = 2;
+  CODE_LOSSY = 3;
+  CODE_CORE_MISSING = 4;
+  CODE_SPAWN_FAILED = 5;
+  CODE_HANDSHAKE_FAILED = 6;
+  CODE_VERSION_MISMATCH = 7;
+  CODE_TIMEOUT = 8;
+  CODE_CONFLICT = 9;
+  CODE_RESOURCE_EXHAUSTED = 10;
+  CODE_INTERNAL = 11;
+}
+
+message Error {
+  Code code = 1;
+  string message = 2;
+  bool retryable = 3;
+  string details_json = 4;
+  string request_id = 5;
+}
