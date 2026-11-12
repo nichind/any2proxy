@@ -113,18 +113,20 @@ jobs:
   npm:
     needs: release
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    if: vars.NPM_PUBLISH == 'true'
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
-      - name: publish
-        if: env.NODE_AUTH_TOKEN != ''
+          package-manager-cache: false
+      - name: stage
         working-directory: sdk/node
-        run: npm publish --access public
+        run: npm stage publish
 
   crates:
     needs: release
