@@ -1,0 +1,13 @@
+[project]
+name = "any2proxy"
+version = "0.1.0"
+description = "JSON-RPC client for a2pd"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["any2proxy*"]

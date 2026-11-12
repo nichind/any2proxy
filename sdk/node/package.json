@@ -1,0 +1,11 @@
+{
+  "name": "any2proxy",
+  "version": "0.1.0",
+  "description": "JSON-RPC client for a2pd",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
