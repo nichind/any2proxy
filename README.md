@@ -63,7 +63,17 @@ Modes:
 ```sh
 a2p run --mode auto --binary ./sing-box ./links.txt
 a2p run --mode pool --binary ./sing-box ./links.txt
+a2p run --mode balance --to mihomo ./config.yaml
 ```
+
+Test all proxies, optionally in parallel:
+
+```sh
+a2p test --to mihomo ./config.yaml
+a2p test --to sing-box --concurrency 4 ./config.yaml
+```
+
+mihomo tests run sequentially; `--concurrency` is ignored for mihomo.
 
 Environment and endpoint checks:
 

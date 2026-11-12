@@ -10,7 +10,17 @@ import (
 )
 
 type document struct {
-	Proxies []proxy `yaml:"proxies"`
+	Proxies     []proxy `yaml:"proxies"`
+	ProxyGroups []group `yaml:"proxy-groups"`
+}
+
+type group struct {
+	Name      string   `yaml:"name"`
+	Type      string   `yaml:"type"`
+	Proxies   []string `yaml:"proxies"`
+	URL       string   `yaml:"url"`
+	Interval  int      `yaml:"interval"`
+	Tolerance int      `yaml:"tolerance"`
 }
 
 type proxy struct {
@@ -62,6 +72,20 @@ func Parse(r io.Reader) (ir.Profile, error) {
 			continue
 		}
 		profile.Nodes = append(profile.Nodes, node)
+	}
+
+	for _, g := range doc.ProxyGroups {
+		if g.Name == "" {
+			continue
+		}
+		profile.Groups = append(profile.Groups, ir.Group{
+			Name:      g.Name,
+			Type:      g.Type,
+			Proxies:   append([]string(nil), g.Proxies...),
+			URL:       g.URL,
+			Interval:  g.Interval,
+			Tolerance: g.Tolerance,
+		})
 	}
 
 	nodes, warnings := ir.NormalizeTags(profile.Nodes)

@@ -37,25 +37,43 @@ type route struct {
 	Final string `json:"final"`
 }
 
+type obfsConfig struct {
+	Type     string `json:"type"`
+	Password string `json:"password,omitempty"`
+}
+
 type outbound struct {
-	Type       string     `json:"type"`
-	Tag        string     `json:"tag"`
-	Server     string     `json:"server"`
-	ServerPort uint16     `json:"server_port"`
-	UUID       string     `json:"uuid,omitempty"`
-	Password   string     `json:"password,omitempty"`
-	Method     string     `json:"method,omitempty"`
-	Flow       string     `json:"flow,omitempty"`
-	Security   string     `json:"security,omitempty"`
-	Obfs       string     `json:"obfs,omitempty"`
-	ObfsPass   string     `json:"obfs_password,omitempty"`
-	TLS        *tlsConfig `json:"tls,omitempty"`
+	Type       string      `json:"type"`
+	Tag        string      `json:"tag"`
+	Server     string      `json:"server"`
+	ServerPort uint16      `json:"server_port"`
+	UUID       string      `json:"uuid,omitempty"`
+	Password   string      `json:"password,omitempty"`
+	Method     string      `json:"method,omitempty"`
+	Flow       string      `json:"flow,omitempty"`
+	Security   string      `json:"security,omitempty"`
+	Obfs       *obfsConfig `json:"obfs,omitempty"`
+	TLS        *tlsConfig  `json:"tls,omitempty"`
 }
 
 type config struct {
-	Inbounds  []inbound  `json:"inbounds,omitempty"`
-	Outbounds []outbound `json:"outbounds"`
-	Route     *route     `json:"route,omitempty"`
+	Inbounds  []inbound `json:"inbounds,omitempty"`
+	Outbounds []any     `json:"outbounds"`
+	Route     *route    `json:"route,omitempty"`
+}
+
+type selector struct {
+	Type      string   `json:"type"`
+	Tag       string   `json:"tag"`
+	Outbounds []string `json:"outbounds"`
+}
+
+type urltest struct {
+	Type      string   `json:"type"`
+	Tag       string   `json:"tag"`
+	Outbounds []string `json:"outbounds"`
+	URL       string   `json:"url,omitempty"`
+	Interval  string   `json:"interval,omitempty"`
 }
 
 type Options struct {
@@ -75,7 +93,7 @@ func EmitWithOptions(profile ir.Profile, opts Options) ([]byte, ir.CapabilityRep
 	}
 
 	report := ir.CapabilityReport{TargetSupported: append([]string(nil), supported...)}
-	cfg := config{Outbounds: make([]outbound, 0, len(profile.Nodes))}
+	cfg := config{Outbounds: make([]any, 0, len(profile.Nodes)+len(profile.Groups))}
 
 	for _, node := range profile.Nodes {
 		out, ok := convert(node)
@@ -85,6 +103,30 @@ func EmitWithOptions(profile ir.Profile, opts Options) ([]byte, ir.CapabilityRep
 		}
 		report.Mapped = append(report.Mapped, node.Tag)
 		cfg.Outbounds = append(cfg.Outbounds, out)
+	}
+
+	for _, item := range profile.Groups {
+		if item.Type == "url-test" {
+			cfg.Outbounds = append(cfg.Outbounds, urltest{
+				Type:      "urltest",
+				Tag:       item.Name,
+				Outbounds: append([]string(nil), item.Proxies...),
+				URL:       item.URL,
+				Interval:  "3m",
+			})
+			continue
+		}
+		cfg.Outbounds = append(cfg.Outbounds, selector{
+			Type:      "selector",
+			Tag:       item.Name,
+			Outbounds: append([]string(nil), item.Proxies...),
+		})
+	}
+	if len(profile.Groups) > 0 {
+		cfg.Outbounds = append(cfg.Outbounds,
+			map[string]string{"type": "direct", "tag": "DIRECT"},
+			map[string]string{"type": "block", "tag": "REJECT"},
+		)
 	}
 
 	if opts.Strict && len(report.Dropped) > 0 {
@@ -97,7 +139,13 @@ func EmitWithOptions(profile ir.Profile, opts Options) ([]byte, ir.CapabilityRep
 
 	if opts.SocksPort > 0 {
 		cfg.Inbounds = []inbound{{Type: "socks", Listen: "127.0.0.1", ListenPort: opts.SocksPort}}
-		cfg.Route = &route{Final: cfg.Outbounds[0].Tag}
+		finalTag := ""
+		if len(profile.Groups) > 0 {
+			finalTag = profile.Groups[0].Name
+		} else if len(report.Mapped) > 0 {
+			finalTag = report.Mapped[0]
+		}
+		cfg.Route = &route{Final: finalTag}
 	}
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
@@ -136,8 +184,9 @@ func convert(node ir.Node) (outbound, bool) {
 	case "hysteria2":
 		out.Type = "hysteria2"
 		out.Password = node.Secret
-		out.Obfs = extra(node, "obfs")
-		out.ObfsPass = extra(node, "obfs-password")
+		if obfs := extra(node, "obfs"); obfs != "" {
+			out.Obfs = &obfsConfig{Type: obfs, Password: extra(node, "obfs-password")}
+		}
 		out.TLS = tlsFor(node, true)
 	case "anytls":
 		out.Type = "anytls"

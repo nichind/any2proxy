@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -104,6 +105,7 @@ func (s *Service) Run(ctx context.Context, body, format, target, binary string, 
 
 	session, err := supervisor.Start(ctx, supervisor.Config{
 		Command:      coreCommand(binary, target, path),
+		Dir:          filepath.Dir(path),
 		Lease:        &lease,
 		ReadyTimeout: 10 * time.Second,
 		StopTimeout:  5 * time.Second,
@@ -183,7 +185,7 @@ func writeTemp(data []byte, target string) (string, error) {
 
 func coreCommand(binary, target, path string) []string {
 	if target == "mihomo" {
-		return []string{binary, "-f", path}
+		return []string{binary, "-d", filepath.Dir(path), "-f", path}
 	}
 	return []string{binary, "run", "-c", path}
 }

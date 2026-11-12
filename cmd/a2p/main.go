@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nichind/any2proxy/internal/cores"
@@ -112,6 +113,7 @@ func testCommand(args []string) int {
 	targetURL := fs.String("url", "https://www.gstatic.com/generate_204", "URL to fetch through each proxy")
 	timeout := fs.Duration("timeout", 8*time.Second, "per-node timeout")
 	limit := fs.Int("limit", 0, "test only the first N nodes")
+	concurrency := fs.Int("concurrency", 1, "parallel node tests")
 	strict := fs.Bool("strict", false, "fail on unsupported nodes")
 	jsonOut := fs.Bool("json", false, "print JSON")
 	noCache := fs.Bool("no-cache", false, "skip conditional requests")
@@ -168,23 +170,44 @@ func testCommand(args []string) int {
 		LatencyMS int64  `json:"latency_ms,omitempty"`
 		Error     string `json:"error,omitempty"`
 	}
-	results := make([]result, 0, len(nodes))
+	results := make([]result, len(nodes))
 	ctx := context.Background()
-	for _, node := range nodes {
-		started, err := startNode(ctx, node, *to, *binary, *strict)
-		if err != nil {
-			results = append(results, result{Tag: node.Tag, Error: err.Error()})
-			continue
-		}
-		status, latency, err := health.ThroughProxy(ctx, started.Endpoint.URL, *targetURL, *timeout)
-		_ = started.Session.Stop()
-		_ = os.Remove(started.Temp)
-		if err != nil {
-			results = append(results, result{Tag: node.Tag, Error: err.Error()})
-			continue
-		}
-		results = append(results, result{Tag: node.Tag, OK: true, Status: status, LatencyMS: latency.Milliseconds()})
+	workers := *concurrency
+	if workers < 1 {
+		workers = 1
 	}
+	if workers > 16 {
+		workers = 16
+	}
+	if *to == "mihomo" && workers > 1 {
+		fmt.Fprintln(os.Stderr, "warning: mihomo is tested sequentially; --concurrency is ignored")
+		workers = 1
+	}
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	for i, node := range nodes {
+		wg.Add(1)
+		go func(index int, item ir.Node) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			started, err := startNode(ctx, item, *to, *binary, *strict)
+			if err != nil {
+				results[index] = result{Tag: item.Tag, Error: err.Error()}
+				return
+			}
+			status, latency, err := health.ThroughProxy(ctx, started.Endpoint.URL, *targetURL, *timeout)
+			_ = started.Session.Stop()
+			_ = os.Remove(started.Temp)
+			if err != nil {
+				results[index] = result{Tag: item.Tag, Error: err.Error()}
+				return
+			}
+			results[index] = result{Tag: item.Tag, OK: true, Status: status, LatencyMS: latency.Milliseconds()}
+		}(i, node)
+	}
+	wg.Wait()
 
 	if *jsonOut {
 		_ = json.NewEncoder(os.Stdout).Encode(struct {
@@ -338,8 +361,8 @@ func runCommand(args []string) int {
 		fmt.Fprintf(os.Stderr, "error: unsupported target %q; hint: use --to sing-box, mihomo or xray\n", *to)
 		return 4
 	}
-	if *mode != "single" && *mode != "auto" && *mode != "pool" {
-		fmt.Fprintf(os.Stderr, "error: unsupported mode %q; hint: use --mode single, auto or pool\n", *mode)
+	if *mode != "single" && *mode != "auto" && *mode != "pool" && *mode != "balance" {
+		fmt.Fprintf(os.Stderr, "error: unsupported mode %q; hint: use --mode single, auto, pool or balance\n", *mode)
 		return 2
 	}
 
@@ -379,6 +402,9 @@ func runCommand(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	if *mode == "balance" {
+		return runBalance(ctx, profile, *to, *binary, *strict, *report, *jsonOut, *duration)
+	}
 	if *mode == "auto" {
 		return runAuto(ctx, profile, *to, *binary, *strict, *report, *jsonOut, *duration)
 	}
@@ -480,6 +506,70 @@ type startedNode struct {
 	Report   ir.CapabilityReport
 }
 
+func runBalance(ctx context.Context, profile ir.Profile, to, binary string, strict, report, jsonOut bool, duration time.Duration) int {
+	if to == "xray" {
+		fmt.Fprintln(os.Stderr, "error: xray has no balancer support; hint: use --to mihomo or sing-box")
+		return 4
+	}
+	lease, err := supervisor.AcquireRetry(3)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: cannot lease a port")
+		return 8
+	}
+	data, rep, err := emitProfile(to, profile, lease.Port, strict)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return 4
+	}
+	if report {
+		_ = json.NewEncoder(os.Stderr).Encode(rep)
+	}
+	path, err := writeTemp(data, to)
+	if err != nil {
+		return 9
+	}
+	defer os.Remove(path)
+
+	session, err := supervisor.Start(ctx, supervisor.Config{
+		Command:      coreCommand(binary, to, path),
+		Dir:          filepath.Dir(path),
+		Lease:        &lease,
+		ReadyTimeout: 10 * time.Second,
+		StopTimeout:  5 * time.Second,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: core did not start; hint: check --binary and the groups")
+		return 5
+	}
+	defer session.Stop()
+	printEndpoints([]runEndpoint{{Tag: "balance", Core: to, URL: session.Endpoint()}}, "single", jsonOut)
+
+	var timer <-chan time.Time
+	if duration > 0 {
+		timer = time.After(duration)
+	}
+	select {
+	case <-ctx.Done():
+		return 130
+	case <-session.Done():
+		fmt.Fprintln(os.Stderr, "error: core exited")
+		return 5
+	case <-timer:
+		return 0
+	}
+}
+
+func emitProfile(to string, profile ir.Profile, port uint16, strict bool) ([]byte, ir.CapabilityReport, error) {
+	switch to {
+	case "mihomo":
+		return mihomo.Emit(profile, mihomo.Options{Port: port, Strict: strict})
+	case "sing-box":
+		return singbox.EmitWithOptions(profile, singbox.Options{Strict: strict, SocksPort: port})
+	default:
+		return nil, ir.CapabilityReport{}, fmt.Errorf("unsupported target %q", to)
+	}
+}
+
 func runAuto(ctx context.Context, profile ir.Profile, to, binary string, strict, report, jsonOut bool, duration time.Duration) int {
 	sessions := make([]*supervisor.Session, 0, len(profile.Nodes))
 	temps := make([]string, 0, len(profile.Nodes))
@@ -560,6 +650,7 @@ func startNode(ctx context.Context, node ir.Node, to, binary string, strict bool
 	}
 	session, err := supervisor.Start(ctx, supervisor.Config{
 		Command:      coreCommand(binary, to, path),
+		Dir:          filepath.Dir(path),
 		Lease:        &lease,
 		ReadyTimeout: 10 * time.Second,
 		StopTimeout:  5 * time.Second,
@@ -577,6 +668,22 @@ func startNode(ctx context.Context, node ir.Node, to, binary string, strict bool
 }
 
 func dryRunOutput(profile ir.Profile, to, mode string, strict, report bool) int {
+	if mode == "balance" {
+		data, rep, err := emitProfile(to, profile, 1080, strict)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return 4
+		}
+		if report {
+			if err := json.NewEncoder(os.Stderr).Encode(rep); err != nil {
+				return 9
+			}
+		}
+		if _, err := os.Stdout.Write(append(data, '\n')); err != nil {
+			return 9
+		}
+		return 0
+	}
 	nodes := profile.Nodes
 	if mode != "pool" && len(nodes) > 1 {
 		nodes = nodes[:1]
@@ -660,7 +767,7 @@ func writeTemp(data []byte, to string) (string, error) {
 
 func coreCommand(binary, to, path string) []string {
 	if to == "mihomo" {
-		return []string{binary, "-f", path}
+		return []string{binary, "-d", filepath.Dir(path), "-f", path}
 	}
 	return []string{binary, "run", "-c", path}
 }
@@ -1115,7 +1222,7 @@ Run flags:
   --binary <path>             core binary (or A2P_CORE)
   --core <id>                 installed core id (fork)
   --to sing-box|mihomo|xray   target format (default sing-box)
-  --mode single|auto|pool     one node, first healthy, or one port per node
+  --mode single|auto|pool|balance one node, failover, port per node, or one balancer
   --dry-run                   print the core config and exit
   --json                      print endpoints as JSON
   --strict                    fail on unsupported nodes

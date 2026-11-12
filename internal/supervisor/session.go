@@ -16,6 +16,7 @@ import (
 type Config struct {
 	Command      []string
 	Env          []string
+	Dir          string
 	Lease        *Lease
 	ReadyTimeout time.Duration
 	StopTimeout  time.Duration
@@ -65,6 +66,9 @@ func Start(ctx context.Context, cfg Config) (*Session, error) {
 
 	cmd := exec.CommandContext(ctx, cfg.Command[0], args...)
 	cmd.Env = append(os.Environ(), cfg.Env...)
+	if cfg.Dir != "" {
+		cmd.Dir = cfg.Dir
+	}
 	out := &bytes.Buffer{}
 	cmd.Stdout = out
 	cmd.Stderr = out

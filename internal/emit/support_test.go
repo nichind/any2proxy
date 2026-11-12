@@ -1,6 +1,7 @@
 package emit_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/nichind/any2proxy/internal/emit/links"
@@ -46,5 +47,29 @@ func TestAllProtocolsSupported(t *testing.T) {
 	lines, dropped := links.Emit(profile)
 	if len(lines) != 7 || len(dropped) != 0 {
 		t.Fatalf("links: %d links, %d dropped", len(lines), len(dropped))
+	}
+}
+
+func TestGroups(t *testing.T) {
+	profile := allNodes()
+	profile.Groups = []ir.Group{
+		{Name: "AUTO", Type: "url-test", Proxies: []string{"vless", "ss"}, URL: "https://example.com"},
+		{Name: "PROXY", Type: "select", Proxies: []string{"AUTO", "anytls"}},
+	}
+
+	singboxConfig, _, err := singbox.Emit(profile, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(singboxConfig), `"type": "urltest"`) || !strings.Contains(string(singboxConfig), `"type": "selector"`) {
+		t.Fatalf("sing-box groups missing: %s", singboxConfig)
+	}
+
+	mihomoConfig, _, err := mihomo.Emit(profile, mihomo.Options{Port: 1080})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(mihomoConfig), "proxy-groups:") || !strings.Contains(string(mihomoConfig), "url-test") {
+		t.Fatalf("mihomo groups missing: %s", mihomoConfig)
 	}
 }

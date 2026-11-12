@@ -20,7 +20,17 @@ type Warning struct {
 type Profile struct {
 	Source   *Source   `json:"source,omitempty"`
 	Nodes    []Node    `json:"nodes"`
+	Groups   []Group   `json:"groups,omitempty"`
 	Warnings []Warning `json:"warnings,omitempty"`
+}
+
+type Group struct {
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Proxies   []string `json:"proxies"`
+	URL       string   `json:"url,omitempty"`
+	Interval  int      `json:"interval,omitempty"`
+	Tolerance int      `json:"tolerance,omitempty"`
 }
 
 func NormalizeTags(nodes []Node) ([]Node, []Warning) {
