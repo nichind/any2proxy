@@ -10,20 +10,31 @@ import (
 )
 
 type proxy struct {
-	Name           string `yaml:"name"`
-	Type           string `yaml:"type"`
-	Server         string `yaml:"server"`
-	Port           uint16 `yaml:"port"`
-	UUID           string `yaml:"uuid,omitempty"`
-	Password       string `yaml:"password,omitempty"`
-	Cipher         string `yaml:"cipher,omitempty"`
-	Network        string `yaml:"network,omitempty"`
-	TLS            bool   `yaml:"tls,omitempty"`
-	Servername     string `yaml:"servername,omitempty"`
-	SNI            string `yaml:"sni,omitempty"`
-	Flow           string `yaml:"flow,omitempty"`
-	AlterID        int    `yaml:"alterId,omitempty"`
-	SkipCertVerify bool   `yaml:"skip-cert-verify,omitempty"`
+	Name           string   `yaml:"name"`
+	Type           string   `yaml:"type"`
+	Server         string   `yaml:"server"`
+	Port           uint16   `yaml:"port"`
+	UUID           string   `yaml:"uuid,omitempty"`
+	Password       string   `yaml:"password,omitempty"`
+	Cipher         string   `yaml:"cipher,omitempty"`
+	Network        string   `yaml:"network,omitempty"`
+	TLS            bool     `yaml:"tls,omitempty"`
+	Servername     string   `yaml:"servername,omitempty"`
+	SNI            string   `yaml:"sni,omitempty"`
+	Flow           string   `yaml:"flow,omitempty"`
+	AlterID        int      `yaml:"alterId,omitempty"`
+	SkipCertVerify bool     `yaml:"skip-cert-verify,omitempty"`
+	ClientFP       string   `yaml:"client-fingerprint,omitempty"`
+	Fingerprint    string   `yaml:"fingerprint,omitempty"`
+	Obfs           string   `yaml:"obfs,omitempty"`
+	ObfsPass       string   `yaml:"obfs-password,omitempty"`
+	ALPN           []string `yaml:"alpn,omitempty"`
+	RealityOpts    *reality `yaml:"reality-opts,omitempty"`
+}
+
+type reality struct {
+	PublicKey string `yaml:"public-key"`
+	ShortID   string `yaml:"short-id,omitempty"`
 }
 
 type group struct {
@@ -47,7 +58,7 @@ type Options struct {
 	Strict bool
 }
 
-var supported = []string{"hysteria2", "ss", "trojan", "tuic", "vless", "vmess"}
+var supported = []string{"anytls", "hysteria2", "ss", "trojan", "tuic", "vless", "vmess"}
 
 func Emit(profile ir.Profile, opts Options) ([]byte, ir.CapabilityReport, error) {
 	if len(profile.Nodes) == 0 {
@@ -103,6 +114,11 @@ func convert(node ir.Node) (proxy, bool) {
 		p.Network = network(node)
 		p.Flow = extra(node, "flow")
 		p.TLS, p.Servername = tlsFields(node)
+		p.ClientFP = extra(node, "client-fingerprint")
+		if key := extra(node, "public-key"); key != "" {
+			p.TLS = true
+			p.RealityOpts = &reality{PublicKey: key, ShortID: extra(node, "short-id")}
+		}
 	case "vmess":
 		p.Type = "vmess"
 		p.UUID = node.Account
@@ -123,6 +139,16 @@ func convert(node ir.Node) (proxy, bool) {
 		p.Type = "hysteria2"
 		p.Password = node.Secret
 		p.SNI = serverName(node)
+		p.Obfs = extra(node, "obfs")
+		p.ObfsPass = extra(node, "obfs-password")
+		p.Fingerprint = extra(node, "fingerprint")
+		p.SkipCertVerify = extra(node, "skip-cert-verify") == "true"
+	case "anytls":
+		p.Type = "anytls"
+		p.Password = node.Secret
+		p.SNI = serverName(node)
+		p.Fingerprint = extra(node, "fingerprint")
+		p.ClientFP = extra(node, "client-fingerprint")
 		p.SkipCertVerify = extra(node, "skip-cert-verify") == "true"
 	case "tuic":
 		p.Type = "tuic"
@@ -132,6 +158,9 @@ func convert(node ir.Node) (proxy, bool) {
 		p.SkipCertVerify = extra(node, "skip-cert-verify") == "true"
 	default:
 		return proxy{}, false
+	}
+	if alpn := extra(node, "alpn"); alpn != "" {
+		p.ALPN = strings.Split(alpn, ",")
 	}
 	return p, true
 }

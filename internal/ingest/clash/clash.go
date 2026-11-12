@@ -14,20 +14,30 @@ type document struct {
 }
 
 type proxy struct {
-	Name       string         `yaml:"name"`
-	Type       string         `yaml:"type"`
-	Server     string         `yaml:"server"`
-	Port       uint16         `yaml:"port"`
-	UUID       string         `yaml:"uuid"`
-	Password   string         `yaml:"password"`
-	Cipher     string         `yaml:"cipher"`
-	Network    string         `yaml:"network"`
-	TLS        bool           `yaml:"tls"`
-	SNI        string         `yaml:"sni"`
-	Servername string         `yaml:"servername"`
-	Flow       string         `yaml:"flow"`
-	SkipCert   bool           `yaml:"skip-cert-verify"`
-	Extra      map[string]any `yaml:",inline"`
+	Name        string   `yaml:"name"`
+	Type        string   `yaml:"type"`
+	Server      string   `yaml:"server"`
+	Port        uint16   `yaml:"port"`
+	UUID        string   `yaml:"uuid"`
+	Password    string   `yaml:"password"`
+	Cipher      string   `yaml:"cipher"`
+	Network     string   `yaml:"network"`
+	TLS         bool     `yaml:"tls"`
+	SNI         string   `yaml:"sni"`
+	Servername  string   `yaml:"servername"`
+	Flow        string   `yaml:"flow"`
+	SkipCert    bool     `yaml:"skip-cert-verify"`
+	Fingerprint string   `yaml:"fingerprint"`
+	ClientFP    string   `yaml:"client-fingerprint"`
+	Obfs        string   `yaml:"obfs"`
+	ObfsPass    string   `yaml:"obfs-password"`
+	PacketEnc   string   `yaml:"packet-encoding"`
+	ALPN        []string `yaml:"alpn"`
+	Reality     struct {
+		PublicKey string `yaml:"public-key"`
+		ShortID   string `yaml:"short-id"`
+	} `yaml:"reality-opts"`
+	Extra map[string]any `yaml:",inline"`
 }
 
 func Parse(r io.Reader) (ir.Profile, error) {
@@ -63,7 +73,7 @@ func Parse(r io.Reader) (ir.Profile, error) {
 func convert(p proxy) (ir.Node, error) {
 	protocol := strings.ToLower(p.Type)
 	switch protocol {
-	case "vless", "vmess", "trojan", "ss", "hysteria2", "hy2", "tuic":
+	case "vless", "vmess", "trojan", "ss", "hysteria2", "hy2", "tuic", "anytls":
 	case "":
 		return ir.Node{}, fmt.Errorf("type is empty")
 	default:
@@ -95,7 +105,7 @@ func convert(p proxy) (ir.Node, error) {
 		node.Account = p.Cipher
 	}
 	switch protocol {
-	case "trojan", "hysteria2", "hy2", "tuic":
+	case "trojan", "hysteria2", "hy2", "tuic", "anytls":
 		node.Secret = p.Password
 	case "ss":
 		node.Secret = p.Password
@@ -122,6 +132,30 @@ func extras(p proxy) map[string]string {
 	}
 	if p.SkipCert {
 		extra["skip-cert-verify"] = "true"
+	}
+	if p.Fingerprint != "" {
+		extra["fingerprint"] = p.Fingerprint
+	}
+	if p.ClientFP != "" {
+		extra["client-fingerprint"] = p.ClientFP
+	}
+	if p.Obfs != "" {
+		extra["obfs"] = p.Obfs
+	}
+	if p.ObfsPass != "" {
+		extra["obfs-password"] = p.ObfsPass
+	}
+	if p.PacketEnc != "" {
+		extra["packet-encoding"] = p.PacketEnc
+	}
+	if len(p.ALPN) > 0 {
+		extra["alpn"] = strings.Join(p.ALPN, ",")
+	}
+	if p.Reality.PublicKey != "" {
+		extra["public-key"] = p.Reality.PublicKey
+	}
+	if p.Reality.ShortID != "" {
+		extra["short-id"] = p.Reality.ShortID
 	}
 	if len(extra) == 0 {
 		return nil

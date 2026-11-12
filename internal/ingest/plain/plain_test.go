@@ -40,7 +40,7 @@ func TestParseLinks(t *testing.T) {
 }
 
 func TestParseRejectsOversizedLine(t *testing.T) {
-	profile, err := Parse(strings.NewReader("vless" + "://u@example.com/" + strings.Repeat("a", 300)))
+	profile, err := Parse(strings.NewReader("vless" + "://u@example.com/" + strings.Repeat("a", 5000)))
 	if err != nil {
 		t.Fatal(err)
 	}

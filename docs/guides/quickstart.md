@@ -25,6 +25,18 @@ a2p compile ./links.txt
 a2p run --binary ./sing-box ./links.txt
 ```
 
+Export links:
+
+```sh
+a2p links ./config.yaml
+```
+
+Test every proxy through a core:
+
+```sh
+a2p test --to mihomo ./config.yaml
+```
+
 Endpoint:
 
 ```text

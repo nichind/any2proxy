@@ -16,6 +16,7 @@ import (
 
 	"github.com/nichind/any2proxy/internal/cores"
 	"github.com/nichind/any2proxy/internal/doctor"
+	"github.com/nichind/any2proxy/internal/emit/links"
 	"github.com/nichind/any2proxy/internal/emit/mihomo"
 	"github.com/nichind/any2proxy/internal/emit/singbox"
 	"github.com/nichind/any2proxy/internal/emit/xray"
@@ -50,6 +51,10 @@ func run(args []string) int {
 		return parseCommand(args[1:])
 	case "compile":
 		return compileCommand(args[1:])
+	case "links":
+		return linksCommand(args[1:])
+	case "test":
+		return testCommand(args[1:])
 	case "run":
 		return runCommand(args[1:])
 	case "sub":
@@ -94,6 +99,156 @@ func parseCommand(args []string) int {
 	if err := encoder.Encode(profile); err != nil {
 		fmt.Fprintln(os.Stderr, "error: cannot write output; hint: check stdout")
 		return 9
+	}
+	return 0
+}
+
+func testCommand(args []string) int {
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	binary := fs.String("binary", os.Getenv("A2P_CORE"), "core binary")
+	coreID := fs.String("core", "", "installed core id")
+	to := fs.String("to", "sing-box", "target format")
+	targetURL := fs.String("url", "https://www.gstatic.com/generate_204", "URL to fetch through each proxy")
+	timeout := fs.Duration("timeout", 8*time.Second, "per-node timeout")
+	limit := fs.Int("limit", 0, "test only the first N nodes")
+	strict := fs.Bool("strict", false, "fail on unsupported nodes")
+	jsonOut := fs.Bool("json", false, "print JSON")
+	noCache := fs.Bool("no-cache", false, "skip conditional requests")
+	offline := fs.Bool("offline", false, "use the cache only")
+	allowPrivate := fs.Bool("allow-private", false, "allow private subscription hosts")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "error: test needs one file, URL or -; hint: a2p test ./config.yaml")
+		return 2
+	}
+	if *to != "sing-box" && *to != "mihomo" && *to != "xray" {
+		fmt.Fprintf(os.Stderr, "error: unsupported target %q\n", *to)
+		return 4
+	}
+	profile, err := readProfile(fs.Arg(0), fetch.Options{
+		NoCache: *noCache, Offline: *offline, AllowPrivate: *allowPrivate,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: cannot parse %s; hint: check the file and its format\n", displaySource(fs.Arg(0)))
+		return 3
+	}
+	if len(profile.Nodes) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no nodes")
+		return 3
+	}
+
+	if *binary == "" {
+		lookup := *to
+		if *coreID != "" {
+			lookup = *coreID
+		}
+		if store, err := cores.Open(); err == nil {
+			if entry, err := store.Get(lookup); err == nil {
+				*binary = entry.Path
+			}
+		}
+	}
+	if *binary == "" {
+		fmt.Fprintln(os.Stderr, "error: no core binary; hint: a2p cores install <id> or --binary")
+		return 5
+	}
+
+	nodes := profile.Nodes
+	if *limit > 0 && *limit < len(nodes) {
+		nodes = nodes[:*limit]
+	}
+
+	type result struct {
+		Tag       string `json:"tag"`
+		OK        bool   `json:"ok"`
+		Status    int    `json:"status,omitempty"`
+		LatencyMS int64  `json:"latency_ms,omitempty"`
+		Error     string `json:"error,omitempty"`
+	}
+	results := make([]result, 0, len(nodes))
+	ctx := context.Background()
+	for _, node := range nodes {
+		started, err := startNode(ctx, node, *to, *binary, *strict)
+		if err != nil {
+			results = append(results, result{Tag: node.Tag, Error: err.Error()})
+			continue
+		}
+		status, latency, err := health.ThroughProxy(ctx, started.Endpoint.URL, *targetURL, *timeout)
+		_ = started.Session.Stop()
+		_ = os.Remove(started.Temp)
+		if err != nil {
+			results = append(results, result{Tag: node.Tag, Error: err.Error()})
+			continue
+		}
+		results = append(results, result{Tag: node.Tag, OK: true, Status: status, LatencyMS: latency.Milliseconds()})
+	}
+
+	if *jsonOut {
+		_ = json.NewEncoder(os.Stdout).Encode(struct {
+			Results []result `json:"results"`
+		}{Results: results})
+	} else {
+		for _, item := range results {
+			if item.OK {
+				fmt.Printf("ok\t%s\t%d\t%dms\n", item.Tag, item.Status, item.LatencyMS)
+			} else {
+				fmt.Printf("fail\t%s\t%s\n", item.Tag, item.Error)
+			}
+		}
+	}
+
+	for _, item := range results {
+		if !item.OK {
+			return 1
+		}
+	}
+	return 0
+}
+
+func linksCommand(args []string) int {
+	fs := flag.NewFlagSet("links", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	jsonOut := fs.Bool("json", false, "print JSON")
+	noCache := fs.Bool("no-cache", false, "skip conditional requests")
+	offline := fs.Bool("offline", false, "use the cache only")
+	allowPrivate := fs.Bool("allow-private", false, "allow private subscription hosts")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "error: links needs one file, URL or -; hint: a2p links ./config.yaml")
+		return 2
+	}
+	profile, err := readProfile(fs.Arg(0), fetch.Options{
+		NoCache: *noCache, Offline: *offline, AllowPrivate: *allowPrivate,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: cannot parse %s; hint: check the file and its format\n", displaySource(fs.Arg(0)))
+		return 3
+	}
+
+	lines, dropped := links.Emit(profile)
+	if len(lines) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no supported proxy links")
+		return 3
+	}
+	if *jsonOut {
+		if err := json.NewEncoder(os.Stdout).Encode(struct {
+			Links   []string `json:"links"`
+			Dropped []string `json:"dropped,omitempty"`
+		}{Links: lines, Dropped: dropped}); err != nil {
+			return 9
+		}
+		return 0
+	}
+	for _, line := range lines {
+		fmt.Println(line)
+	}
+	if len(dropped) > 0 {
+		fmt.Fprintf(os.Stderr, "dropped %d unsupported nodes\n", len(dropped))
 	}
 	return 0
 }
@@ -940,6 +1095,8 @@ Usage:
 Commands:
   parse <file|url|->          parse a link list, Clash YAML or subscription URL
   compile [flags] <file|url|-> compile to a core config
+  links <file|url|->          export proxy links
+  test [flags] <file|url|->   test every proxy through a core
   run [flags] <file|url|sub:name|-> compile, start the core and print the endpoint
   sub <command>               manage subscription URLs
   cores <command>             manage core binaries
@@ -972,6 +1129,8 @@ Fetch flags:
 Examples:
   a2p parse ./links.txt
   a2p parse https://example.com/sub
+  a2p links ./config.yaml
+  a2p test --to mihomo ./config.yaml
   a2p compile ./links.txt
   a2p compile --to mihomo ./links.txt
   a2p compile --to xray ./links.txt

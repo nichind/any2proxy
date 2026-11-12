@@ -53,13 +53,21 @@ type outbound struct {
 }
 
 type streamSettings struct {
-	Network     string       `json:"network,omitempty"`
-	Security    string       `json:"security,omitempty"`
-	TLSSettings *tlsSettings `json:"tlsSettings,omitempty"`
+	Network         string           `json:"network,omitempty"`
+	Security        string           `json:"security,omitempty"`
+	TLSSettings     *tlsSettings     `json:"tlsSettings,omitempty"`
+	RealitySettings *realitySettings `json:"realitySettings,omitempty"`
 }
 
 type tlsSettings struct {
 	ServerName string `json:"serverName,omitempty"`
+}
+
+type realitySettings struct {
+	ServerName  string `json:"serverName,omitempty"`
+	PublicKey   string `json:"publicKey,omitempty"`
+	ShortID     string `json:"shortId,omitempty"`
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 type rule struct {
@@ -191,11 +199,30 @@ func streamFor(node ir.Node) *streamSettings {
 	}
 	stream := &streamSettings{Network: network(node)}
 	name := serverName(node)
+	if key := extra(node, "public-key"); key != "" {
+		stream.Security = "reality"
+		stream.RealitySettings = &realitySettings{
+			ServerName:  name,
+			PublicKey:   key,
+			ShortID:     extra(node, "short-id"),
+			Fingerprint: firstNonEmpty(extra(node, "client-fingerprint"), extra(node, "fingerprint")),
+		}
+		return stream
+	}
 	if name != "" || extra(node, "tls") == "true" {
 		stream.Security = "tls"
 		stream.TLSSettings = &tlsSettings{ServerName: name}
 	}
 	return stream
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func network(node ir.Node) string {

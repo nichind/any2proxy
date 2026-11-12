@@ -14,6 +14,7 @@ go install ./cmd/a2p
 
 ```sh
 a2p parse ./links.txt
+a2p links ./config.yaml
 a2p compile ./links.txt
 a2p run --binary ./sing-box ./links.txt
 ```
@@ -70,6 +71,7 @@ Environment and endpoint checks:
 a2p doctor
 a2p check socks5://127.0.0.1:1080
 a2p check --url https://example.com socks5://127.0.0.1:1080
+a2p test --to mihomo ./config.yaml
 ```
 
 ## SDKs
@@ -101,6 +103,8 @@ Functions: `a2p_new`, `a2p_call`, `a2p_version`, `a2p_free`, `a2p_close`.
 ## Status
 
 - `parse` handles plain link lists, Clash YAML and subscription URLs.
+- `links` exports vless, vmess, trojan, ss, hysteria2, tuic and anytls links.
+- `test` runs every node through a core and reports status and latency.
 - `compile` emits sing-box JSON, mihomo YAML and Xray JSON.
 - `run` starts a core, prints endpoints and fails over in `auto` mode.
 - `cores` installs from GitHub Releases, verifies sha256, imports local binaries and resolves `--to` automatically.

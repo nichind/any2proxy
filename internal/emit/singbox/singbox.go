@@ -10,8 +10,21 @@ import (
 )
 
 type tlsConfig struct {
-	Enabled    bool   `json:"enabled"`
-	ServerName string `json:"server_name,omitempty"`
+	Enabled    bool           `json:"enabled"`
+	ServerName string         `json:"server_name,omitempty"`
+	Reality    *realityConfig `json:"reality,omitempty"`
+	UTLS       *utlsConfig    `json:"utls,omitempty"`
+}
+
+type realityConfig struct {
+	Enabled   bool   `json:"enabled"`
+	PublicKey string `json:"public_key"`
+	ShortID   string `json:"short_id,omitempty"`
+}
+
+type utlsConfig struct {
+	Enabled     bool   `json:"enabled"`
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 type inbound struct {
@@ -34,6 +47,8 @@ type outbound struct {
 	Method     string     `json:"method,omitempty"`
 	Flow       string     `json:"flow,omitempty"`
 	Security   string     `json:"security,omitempty"`
+	Obfs       string     `json:"obfs,omitempty"`
+	ObfsPass   string     `json:"obfs_password,omitempty"`
 	TLS        *tlsConfig `json:"tls,omitempty"`
 }
 
@@ -48,7 +63,7 @@ type Options struct {
 	SocksPort uint16
 }
 
-var supported = []string{"hysteria2", "shadowsocks", "trojan", "tuic", "vless", "vmess"}
+var supported = []string{"anytls", "hysteria2", "shadowsocks", "trojan", "tuic", "vless", "vmess"}
 
 func Emit(profile ir.Profile, strict bool) ([]byte, ir.CapabilityReport, error) {
 	return EmitWithOptions(profile, Options{Strict: strict})
@@ -121,6 +136,12 @@ func convert(node ir.Node) (outbound, bool) {
 	case "hysteria2":
 		out.Type = "hysteria2"
 		out.Password = node.Secret
+		out.Obfs = extra(node, "obfs")
+		out.ObfsPass = extra(node, "obfs-password")
+		out.TLS = tlsFor(node, true)
+	case "anytls":
+		out.Type = "anytls"
+		out.Password = node.Secret
 		out.TLS = tlsFor(node, true)
 	case "tuic":
 		out.Type = "tuic"
@@ -142,10 +163,25 @@ func tlsFor(node ir.Node, fallback bool) *tlsConfig {
 	if serverName == "" {
 		serverName = extra(node, "servername")
 	}
+	realityKey := extra(node, "public-key")
+	if realityKey != "" {
+		enabled = true
+	}
 	if !enabled && serverName == "" {
 		return nil
 	}
-	return &tlsConfig{Enabled: enabled, ServerName: serverName}
+	cfg := &tlsConfig{Enabled: enabled, ServerName: serverName}
+	if realityKey != "" {
+		cfg.Reality = &realityConfig{Enabled: true, PublicKey: realityKey, ShortID: extra(node, "short-id")}
+		fingerprint := extra(node, "client-fingerprint")
+		if fingerprint == "" {
+			fingerprint = extra(node, "fingerprint")
+		}
+		if fingerprint != "" {
+			cfg.UTLS = &utlsConfig{Enabled: true, Fingerprint: fingerprint}
+		}
+	}
+	return cfg
 }
 
 func extra(node ir.Node, key string) string {

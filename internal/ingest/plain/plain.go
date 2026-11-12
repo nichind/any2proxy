@@ -11,7 +11,7 @@ import (
 	"github.com/nichind/any2proxy/internal/ir"
 )
 
-const maxLine = 256
+const maxLine = 4096
 
 func Parse(r io.Reader) (ir.Profile, error) {
 	profile := ir.Profile{}
@@ -84,7 +84,7 @@ func parseLink(text string) (ir.Node, error) {
 		user := u.User.Username()
 		pass, hasPass := u.User.Password()
 		switch protocol {
-		case "trojan":
+		case "trojan", "hysteria2", "hy2", "anytls":
 			node.Secret = user
 		case "ss":
 			node.Account = user
