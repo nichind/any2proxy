@@ -19,6 +19,7 @@ __pycache__/
 .venv/
 build/
 *.egg-info/
+sdk/python/any2proxy/_bin/
 node_modules/
 sdk/rust/target/
 sdk/rust/Cargo.lock

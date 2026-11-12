@@ -269,6 +269,7 @@ func TestRunDryRun(t *testing.T) {
 
 func TestRunMissingBinary(t *testing.T) {
 	t.Setenv("A2P_CORE", "")
+	t.Setenv("A2P_HOME", t.TempDir())
 	f, err := os.CreateTemp(t.TempDir(), "links")
 	if err != nil {
 		t.Fatal(err)

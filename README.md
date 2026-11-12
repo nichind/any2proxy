@@ -4,6 +4,12 @@ local proxy from links, subscriptions and clash configs. runs sing-box, mihomo o
 
 ### install
 
+```sh
+pip install any2proxy
+```
+
+`a2p` and `a2pd` are inside the wheel.
+
 with go 1.25+:
 
 ```sh

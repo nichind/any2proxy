@@ -1,6 +1,6 @@
 [project]
 name = "any2proxy"
-version = "0.1.1"
+version = "0.2.0"
 description = "json-rpc client for the any2proxy daemon"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -13,6 +13,10 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 
+[project.scripts]
+a2p = "any2proxy.cli:a2p"
+a2pd = "any2proxy.cli:a2pd"
+
 [project.urls]
 Homepage = "https://github.com/nichind/any2proxy"
 Repository = "https://github.com/nichind/any2proxy"
@@ -23,3 +27,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["any2proxy*"]
+
+[tool.setuptools.package-data]
+any2proxy = ["_bin/*"]
