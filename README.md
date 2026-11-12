@@ -68,6 +68,55 @@ a2p run --mode balance --to mihomo ./config.yaml
 
 `balance` needs mihomo or sing-box. xray has no groups.
 
+### protocols
+
+`a2p` = parse, links and config emit. other columns = core support.
+
+| protocol | a2p | sing-box | mihomo | xray |
+|---|:---:|:---:|:---:|:---:|
+| vless | yes | yes | yes | yes |
+| vmess | yes | yes | yes | yes |
+| trojan | yes | yes | yes | yes |
+| shadowsocks | yes | yes | yes | yes |
+| hysteria2 | yes | yes | yes | no |
+| tuic | yes | yes | yes | no |
+| anytls | yes | yes | yes | no |
+| hysteria | no | yes | yes | yes |
+| shadowtls | no | yes | no | no |
+| snell | no | yes | yes | no |
+| ssh | no | yes | yes | no |
+| tor | no | yes | no | no |
+| wireguard | no | yes | yes | yes |
+| naive | no | yes | no | no |
+| shadowsocksr | no | no | yes | no |
+| mieru | no | no | yes | no |
+| sudoku | no | no | yes | no |
+| shadowquic | no | no | yes | no |
+| trusttunnel | no | no | yes | no |
+| masque | no | no | yes | yes |
+| zerotier | no | no | yes | no |
+| openvpn | no | no | yes | no |
+| easytier | no | no | yes | no |
+| tailscale | no | no | yes | no |
+| tailcat | no | yes | no | no |
+| socks | no | yes | yes | yes |
+| http | no | yes | yes | yes |
+
+built-in outbounds, not proxy nodes: `direct`, `block`, `dns`, `freedom`, `blackhole`, `loopback`, `bridge`, `rematch`.
+
+### groups
+
+| group | a2p | mihomo | sing-box |
+|---|:---:|:---:|:---:|
+| select | yes | yes | yes |
+| url-test | yes | yes | yes |
+| fallback | yes | yes | partial |
+| load-balance | yes | yes | partial |
+| relay | yes | yes | no |
+
+`fallback` and `load-balance` are passed through to mihomo. sing-box maps them to `selector`
+because it has no direct equivalent. `relay` is not compiled.
+
 ### test
 
 ```sh
@@ -104,10 +153,8 @@ python cabi/test.py dist/libany2proxy.dll
 - [quickstart](docs/guides/quickstart.md)
 - [troubleshooting](docs/guides/troubleshooting.md)
 - [cores](docs/guides/cores.md)
-- [protocols](docs/protocols.md)
 - [benchmarks](docs/benchmarks.md)
 - [security](docs/security.md)
-- [licensing](docs/licensing.md)
 
 ### license
 
