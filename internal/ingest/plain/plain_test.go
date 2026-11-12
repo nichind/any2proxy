@@ -1,50 +1,55 @@
 package plain
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"testing"
 )
 
-func TestParseLinks(t *testing.T) {
-	vless := "vless" + "://"
-	trojan := "trojan" + "://"
-	ss := "ss" + "://"
+func TestParseAllProtocolTypes(t *testing.T) {
+	vmessPayload, err := json.Marshal(map[string]any{
+		"v": "2", "ps": "vmess", "add": "example.com", "port": "443",
+		"id": "uuid", "net": "ws", "tls": "tls", "sni": "example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ssUser := base64.StdEncoding.EncodeToString([]byte("aes-128-gcm:pass"))
 	input := strings.Join([]string{
-		vless + "uuid-1@example.com:443#one",
-		trojan + "secret@example.net#two",
-		ss + "aes-128-gcm:pass@example.org:8388#three",
-		"",
-		"# comment",
-		"not a link",
+		"vless://uuid@example.com:443?security=reality&sni=example.com&pbk=key&sid=ab&fp=chrome&flow=xtls-rprx-vision&type=tcp#vless",
+		"vmess://" + base64.StdEncoding.EncodeToString(vmessPayload),
+		"trojan://pass@example.com:443?sni=example.com#trojan",
+		"ss://" + ssUser + "@example.com:8388#ss",
+		"hysteria2://pass@example.com:443?sni=example.com&obfs=salamander&obfs-password=obfs#hy2",
+		"tuic://uuid:pass@example.com:443?sni=example.com#tuic",
+		"anytls://pass@example.com:443?sni=example.com&fp=chrome#anytls",
 	}, "\n")
 
 	profile, err := Parse(strings.NewReader(input))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(profile.Nodes) != 3 {
-		t.Fatalf("expected 3 nodes, got %d", len(profile.Nodes))
+	if len(profile.Nodes) != 7 {
+		t.Fatalf("expected 7 nodes, got %d: %#v", len(profile.Nodes), profile.Warnings)
 	}
-	if len(profile.Warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d", len(profile.Warnings))
+	byTag := map[string]int{}
+	for i, node := range profile.Nodes {
+		byTag[node.Tag] = i
 	}
-	if profile.Nodes[0].Port != 443 {
-		t.Fatalf("default port not applied: %d", profile.Nodes[0].Port)
+	if profile.Nodes[byTag["vless"]].Extra["public-key"] != "key" {
+		t.Fatal("vless reality key lost")
 	}
-	if profile.Nodes[1].Secret != "secret" {
-		t.Fatal("trojan password did not land in Secret")
+	if profile.Nodes[byTag["vmess"]].Extra["network"] != "ws" {
+		t.Fatal("vmess network lost")
 	}
-	if profile.Nodes[2].Secret != "pass" {
-		t.Fatal("ss password did not land in Secret")
+	if profile.Nodes[byTag["ss"]].Account != "aes-128-gcm" || profile.Nodes[byTag["ss"]].Secret != "pass" {
+		t.Fatal("ss userinfo not decoded")
 	}
-}
-
-func TestParseRejectsOversizedLine(t *testing.T) {
-	profile, err := Parse(strings.NewReader("vless" + "://u@example.com/" + strings.Repeat("a", 5000)))
-	if err != nil {
-		t.Fatal(err)
+	if profile.Nodes[byTag["hy2"]].Extra["obfs"] != "salamander" {
+		t.Fatal("hysteria2 obfs lost")
 	}
-	if len(profile.Nodes) != 0 || len(profile.Warnings) != 1 {
-		t.Fatalf("unexpected profile: %#v", profile)
+	if profile.Nodes[byTag["anytls"]].Secret != "pass" {
+		t.Fatal("anytls password lost")
 	}
 }

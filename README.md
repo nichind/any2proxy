@@ -117,6 +117,7 @@ Functions: `a2p_new`, `a2p_call`, `a2p_version`, `a2p_free`, `a2p_close`.
 - [Troubleshooting](docs/guides/troubleshooting.md)
 - [Cores](docs/guides/cores.md)
 - [Benchmarks](docs/benchmarks.md)
+- [Protocols](docs/protocols.md)
 - [Security](docs/security.md)
 - [Licensing](docs/licensing.md)
 
