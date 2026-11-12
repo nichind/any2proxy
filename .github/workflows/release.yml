@@ -8,8 +8,28 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: tag matches package versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          py=$(grep -m1 '^version = ' sdk/python/pyproject.toml | cut -d'"' -f2)
+          rs=$(grep -m1 '^version = ' sdk/rust/Cargo.toml | cut -d'"' -f2)
+          js=$(python3 -c "import json; print(json.load(open('sdk/node/package.json'))['version'])")
+          echo "tag=$tag python=$py rust=$rs node=$js"
+          test "$tag" = "$py"
+          test "$tag" = "$rs"
+          test "$tag" = "$js"
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -40,10 +60,11 @@ jobs:
       - name: build
         run: |
           mkdir -p dist
+          ldflags="-s -w -X github.com/nichind/any2proxy/internal/version.Version=${GITHUB_REF_NAME#v}"
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-            go build -trimpath -ldflags="-s -w" -o dist/a2p${{ matrix.ext }} ./cmd/a2p
+            go build -trimpath -ldflags="$ldflags" -o dist/a2p${{ matrix.ext }} ./cmd/a2p
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-            go build -trimpath -ldflags="-s -w" -o dist/a2pd${{ matrix.ext }} ./cmd/a2pd
+            go build -trimpath -ldflags="$ldflags" -o dist/a2pd${{ matrix.ext }} ./cmd/a2pd
           if [ "${{ matrix.goos }}" = "windows" ]; then
             (cd dist && zip -j ../a2p_${{ matrix.goos }}_${{ matrix.goarch }}.zip a2p.exe a2pd.exe)
           else
@@ -72,6 +93,9 @@ jobs:
   pypi:
     needs: release
     runs-on: ubuntu-latest
+    env:
+      TWINE_USERNAME: __token__
+      TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -82,8 +106,36 @@ jobs:
         working-directory: sdk/python
       - run: python -m twine check dist/*
         working-directory: sdk/python
-      - run: twine upload dist/*
+      - name: publish
+        if: env.TWINE_PASSWORD != ''
         working-directory: sdk/python
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+
+  npm:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: publish
+        if: env.NODE_AUTH_TOKEN != ''
+        working-directory: sdk/node
+        run: npm publish --access public
+
+  crates:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: publish
+        if: env.CARGO_REGISTRY_TOKEN != ''
+        working-directory: sdk/rust
+        run: cargo publish
