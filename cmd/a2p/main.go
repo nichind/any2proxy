@@ -23,6 +23,7 @@ import (
 	"github.com/nichind/any2proxy/internal/emit/xray"
 	"github.com/nichind/any2proxy/internal/health"
 	"github.com/nichind/any2proxy/internal/ingest/clash"
+	"github.com/nichind/any2proxy/internal/ingest/detect"
 	"github.com/nichind/any2proxy/internal/ingest/fetch"
 	"github.com/nichind/any2proxy/internal/ingest/plain"
 	"github.com/nichind/any2proxy/internal/ir"
@@ -1215,8 +1216,11 @@ func readProfile(path string, opts fetch.Options) (ir.Profile, error) {
 		if err != nil {
 			return ir.Profile{}, err
 		}
-		parsed, _ := url.Parse(target)
-		return parseReader(bytes.NewReader(body), parsed.Path)
+		kind, body := detect.Decode(body)
+		if kind == "clash" {
+			return clash.Parse(bytes.NewReader(body))
+		}
+		return plain.Parse(bytes.NewReader(body))
 	}
 
 	var (
