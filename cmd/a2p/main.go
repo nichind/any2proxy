@@ -796,18 +796,49 @@ func coresCommand(args []string) int {
 		assetFilter := fs.String("asset", "", "asset name filter")
 		binName := fs.String("bin-name", "", "binary name inside the archive")
 		sha := fs.String("sha256", "", "expected sha256 for --url")
-		if err := fs.Parse(args[1:]); err != nil {
+		all := fs.Bool("all", false, "update every installed core")
+		rest := args[1:]
+		id := ""
+		if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
+			id = rest[0]
+			rest = rest[1:]
+		}
+		if err := fs.Parse(rest); err != nil {
 			return 2
 		}
-		if fs.NArg() != 1 {
-			fmt.Fprintln(os.Stderr, "error: cores install needs an id; hint: a2p cores install sing-box")
-			return 2
+		if *all {
+			if args[0] != "update" {
+				fmt.Fprintln(os.Stderr, "error: --all is only valid for update")
+				return 2
+			}
+			entries := store.List()
+			if len(entries) == 0 {
+				fmt.Println("no cores")
+				return 0
+			}
+			for _, item := range entries {
+				fmt.Printf("updating %s\n", item.ID)
+				updated, err := store.Install(context.Background(), item.ID, cores.InstallOptions{Version: "latest"})
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "error: %s: %v\n", item.ID, err)
+					return 3
+				}
+				fmt.Printf("installed %s %s %s\n", updated.ID, updated.Version, updated.Path)
+			}
+			return 0
+		}
+		if id == "" {
+			if fs.NArg() != 1 {
+				fmt.Fprintln(os.Stderr, "error: cores install needs an id; hint: a2p cores install sing-box")
+				return 2
+			}
+			id = fs.Arg(0)
 		}
 		if *repo != "" && *link != "" {
 			fmt.Fprintln(os.Stderr, "error: use either --repo or --url")
 			return 2
 		}
-		entry, err := store.Install(context.Background(), fs.Arg(0), cores.InstallOptions{
+		entry, err := store.Install(context.Background(), id, cores.InstallOptions{
 			Version: *version,
 			OS:      *goos,
 			Arch:    *arch,
@@ -822,6 +853,35 @@ func coresCommand(args []string) int {
 			return 3
 		}
 		fmt.Printf("installed %s %s %s\n", entry.ID, entry.Version, entry.Path)
+		return 0
+	case "versions":
+		fs := flag.NewFlagSet("versions", flag.ContinueOnError)
+		fs.SetOutput(os.Stderr)
+		limit := fs.Int("limit", 20, "number of releases")
+		rest := args[1:]
+		id := ""
+		if len(rest) > 0 && !strings.HasPrefix(rest[0], "-") {
+			id = rest[0]
+			rest = rest[1:]
+		}
+		if err := fs.Parse(rest); err != nil {
+			return 2
+		}
+		if id == "" {
+			if fs.NArg() != 1 {
+				fmt.Fprintln(os.Stderr, "error: cores versions needs an id; hint: a2p cores versions sing-box")
+				return 2
+			}
+			id = fs.Arg(0)
+		}
+		versions, err := store.Versions(context.Background(), id, *limit)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return 3
+		}
+		for _, version := range versions {
+			fmt.Println(version)
+		}
 		return 0
 	case "list":
 		entries := store.List()
@@ -897,7 +957,8 @@ func printCoresHelp() {
 
 Usage:
   a2p cores install <id> [flags]
-  a2p cores update <id>
+  a2p cores update <id>|--all
+  a2p cores versions <id>
   a2p cores list
   a2p cores import <id> <path>
   a2p cores verify [id]

@@ -39,8 +39,47 @@ type asset struct {
 }
 
 type release struct {
-	TagName string  `json:"tag_name"`
-	Assets  []asset `json:"assets"`
+	TagName    string  `json:"tag_name"`
+	Prerelease bool    `json:"prerelease"`
+	Draft      bool    `json:"draft"`
+	Assets     []asset `json:"assets"`
+}
+
+func (s *Store) Versions(ctx context.Context, id string, limit int) ([]string, error) {
+	source, ok := sources[id]
+	if !ok {
+		return nil, fmt.Errorf("cores: unknown id %q", id)
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	client := &http.Client{Timeout: 30 * time.Second}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=%d", source.Repo, limit), nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("User-Agent", "any2proxy")
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("cores: releases status %d", response.StatusCode)
+	}
+	var releases []release
+	if err := json.NewDecoder(response.Body).Decode(&releases); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(releases))
+	for _, item := range releases {
+		if item.Draft || item.Prerelease {
+			continue
+		}
+		out = append(out, item.TagName)
+	}
+	return out, nil
 }
 
 type InstallOptions struct {
