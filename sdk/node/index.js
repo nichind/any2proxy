@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { resolveBinary } from "./bin/locate.js";
 
 export class Client {
-  constructor(binary = "a2pd", args = []) {
+  constructor(binary = resolveBinary("a2pd"), args = []) {
     this.process = spawn(binary, args, { stdio: ["pipe", "pipe", "inherit"] });
     this.next = 0;
     this.pending = new Map();

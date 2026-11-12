@@ -1,0 +1,21 @@
+{
+  "name": "@nichind/any2proxy-linux-x64",
+  "version": "0.2.0",
+  "description": "a2p and a2pd binaries for linux x64",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/a2p",
+    "bin/a2pd"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nichind/any2proxy.git",
+    "directory": "sdk/node"
+  }
+}

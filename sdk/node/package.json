@@ -1,16 +1,29 @@
 {
   "name": "any2proxy",
   "version": "0.2.0",
-  "description": "json-rpc client for the any2proxy daemon",
+  "description": "local proxy cli and json-rpc client",
   "type": "module",
   "main": "index.js",
   "exports": {
     ".": "./index.js"
   },
+  "bin": {
+    "a2p": "./bin/a2p.js",
+    "a2pd": "./bin/a2pd.js"
+  },
   "files": [
     "index.js",
+    "bin/*.js",
     "README.md"
   ],
+  "optionalDependencies": {
+    "@nichind/any2proxy-win32-x64": "0.2.0",
+    "@nichind/any2proxy-win32-arm64": "0.2.0",
+    "@nichind/any2proxy-linux-x64": "0.2.0",
+    "@nichind/any2proxy-linux-arm64": "0.2.0",
+    "@nichind/any2proxy-darwin-x64": "0.2.0",
+    "@nichind/any2proxy-darwin-arm64": "0.2.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nichind/any2proxy.git",

@@ -1,0 +1,21 @@
+{
+  "name": "@nichind/any2proxy-win32-x64",
+  "version": "0.2.0",
+  "description": "a2p and a2pd binaries for win32 x64",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/a2p.exe",
+    "bin/a2pd.exe"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nichind/any2proxy.git",
+    "directory": "sdk/node"
+  }
+}

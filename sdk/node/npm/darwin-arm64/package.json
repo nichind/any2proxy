@@ -1,0 +1,21 @@
+{
+  "name": "@nichind/any2proxy-darwin-arm64",
+  "version": "0.2.0",
+  "description": "a2p and a2pd binaries for darwin arm64",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/a2p",
+    "bin/a2pd"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nichind/any2proxy.git",
+    "directory": "sdk/node"
+  }
+}

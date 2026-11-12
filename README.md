@@ -10,6 +10,12 @@ pip install any2proxy
 
 `a2p` and `a2pd` are inside the wheel.
 
+```sh
+npm install -g any2proxy
+```
+
+`a2p` and `a2pd` come from a platform package.
+
 with go 1.25+:
 
 ```sh
