@@ -1,5 +1,5 @@
-# Security
+# security
 
-- Report vulnerabilities through GitHub Security Advisories.
-- Do not open a public issue for a vulnerability.
-- Do not include live subscription URLs, tokens or credentials.
+report vulnerabilities in github security advisories, not public issues.
+
+don't include live subscription urls, tokens or credentials.

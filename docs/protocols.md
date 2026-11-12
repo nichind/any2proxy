@@ -1,6 +1,6 @@
-# Protocols
+# protocols
 
-| Protocol | parse | links | sing-box | mihomo | Xray |
+| protocol | parse | links | sing-box | mihomo | xray |
 |---|:---:|:---:|:---:|:---:|:---:|
 | vless | yes | yes | yes | yes | yes |
 | vmess | yes | yes | yes | yes | yes |
@@ -10,11 +10,8 @@
 | tuic | yes | yes | yes | yes | no |
 | anytls | yes | yes | yes | yes | no |
 
-Xray does not implement hysteria2, tuic or anytls. Those nodes are dropped from Xray
-configs and reported as unsupported; use sing-box or mihomo for them.
+xray has no hysteria2, tuic or anytls. those nodes are dropped from xray configs and reported
+as unsupported. use sing-box or mihomo.
 
-## Groups
-
-`select` and `url-test` are emitted for mihomo and sing-box from Clash `proxy-groups`.
-Xray has no equivalent and drops groups. `--mode balance` starts one core with the full group
-set; `--to xray` rejects this mode.
+`select` and `url-test` groups are emitted for mihomo and sing-box. xray has no groups.
+`--mode balance` runs one core with the full group set; `--to xray` rejects it.

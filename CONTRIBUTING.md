@@ -1,4 +1,6 @@
-# Contributing
+# contributing
+
+before a pr:
 
 ```sh
 go test ./...
@@ -8,7 +10,4 @@ buf lint
 buf generate
 ```
 
-Rules:
-- comments: only why, never what
-- generated code: not edited by hand
-- one change per PR
+keep comments rare: explain why, not what. don't edit generated code. keep prs small.

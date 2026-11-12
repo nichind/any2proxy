@@ -1,4 +1,4 @@
-# Rust SDK
+# rust sdk
 
 ```rust
 use any2proxy::Client;
@@ -9,4 +9,4 @@ let profile = client.parse("vless://uuid@example.com:443#demo", "plain").unwrap(
 client.close().unwrap();
 ```
 
-`a2pd` must be on `PATH`, or pass a path as the first argument.
+`a2pd` must be on `path`, or pass a path as the first argument.

@@ -1,7 +1,10 @@
-# Security
+# security
 
-- Subscription URLs: DPAPI-encrypted on Windows, mode 0600 on Linux and macOS.
-- Fetch cache: URL hash, body hash, ETag, Last-Modified, size. No URL.
-- Private, loopback, link-local and metadata addresses: blocked. `--allow-private` opts out.
-- Redirect targets: checked again.
-- Reports: GitHub Security Advisories. No live URLs, tokens or credentials.
+subscription urls are secrets. windows uses dpapi. linux and macos use a 0600 file.
+
+the fetch cache stores a url hash, body hash, etag, last-modified and size. not the url.
+
+private, loopback, link-local and metadata addresses are blocked. `--allow-private` turns
+that off. redirect targets are checked again.
+
+report issues in github security advisories. no live urls or tokens.

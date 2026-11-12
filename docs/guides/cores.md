@@ -1,20 +1,21 @@
-# Cores
+# cores
 
 ```sh
 a2p cores install sing-box
 a2p cores install sing-box --version v1.14.4
 a2p cores update sing-box
+a2p cores update --all
+a2p cores versions sing-box
 a2p cores list
 a2p cores verify sing-box
 a2p cores import sing-box ./sing-box
 a2p cores remove sing-box
 ```
 
-`install` and `update` download from GitHub Releases, verify sha256 and unpack zip,
-tar.gz or gz. `--os` and `--arch` select another target. `--binary` overrides the imported
-core at run time.
+`install` and `update` pull from github releases, check sha256 and unpack zip, tar.gz or gz.
+`--os` and `--arch` pick another target.
 
-Custom fork or direct link:
+forks and direct links:
 
 ```sh
 a2p cores install fork --repo owner/sing-box --bin-name sing-box
@@ -22,4 +23,4 @@ a2p cores install custom --url https://example.com/core.zip --sha256 <hex> --bin
 a2p run --to sing-box --core fork ./links.txt
 ```
 
-`--core` selects the installed binary; `--to` selects the config format.
+`--core` picks the installed binary. `--to` picks the config format.

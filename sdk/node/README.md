@@ -1,4 +1,4 @@
-# Node SDK
+# node sdk
 
 ```js
 import { Client } from "any2proxy";
@@ -9,4 +9,4 @@ console.log(await client.parse("vless://uuid@example.com:443#demo"));
 await client.close();
 ```
 
-`a2pd` must be on `PATH`, or pass a path as the first argument.
+`a2pd` must be on `path`, or pass a path as the first argument.

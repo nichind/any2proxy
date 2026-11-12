@@ -1,4 +1,4 @@
-# Python SDK
+# python sdk
 
 ```python
 from any2proxy import Client
@@ -9,4 +9,4 @@ print(client.parse("vless://uuid@example.com:443#demo"))
 client.close()
 ```
 
-`a2pd` must be on `PATH`, or pass a path as the first argument.
+`a2pd` must be on `path`, or pass a path as the first argument.

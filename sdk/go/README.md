@@ -1,4 +1,4 @@
-# Go SDK
+# go sdk
 
 ```go
 client, err := any2proxy.Start("a2pd")
@@ -11,4 +11,4 @@ version, _ := client.Version(context.Background())
 profile, _ := client.Parse(context.Background(), "vless://uuid@example.com:443#demo", "plain")
 ```
 
-`a2pd` must be on `PATH`, or pass a path to `Start`.
+`a2pd` must be on `path`, or pass a path to `start`.

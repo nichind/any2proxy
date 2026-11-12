@@ -1,16 +1,22 @@
 # any2proxy
 
-Local proxy from links, subscriptions and Clash configs. Backends: sing-box, mihomo, Xray.
+local proxy from links, subscriptions and clash configs. runs sing-box, mihomo or xray underneath.
 
-## Install
+### install
 
-Go 1.25 or newer:
+with go 1.25+:
 
 ```sh
 go install ./cmd/a2p
 ```
 
-## Use
+or grab a release binary:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nichind/any2proxy/main/packaging/install.sh | sh
+```
+
+### use
 
 ```sh
 a2p parse ./links.txt
@@ -19,38 +25,32 @@ a2p compile ./links.txt
 a2p run --binary ./sing-box ./links.txt
 ```
 
-`a2p run` prints one endpoint:
+`a2p run` prints one line:
 
 ```text
 socks5://127.0.0.1:1080
 ```
 
-Compile for another core:
-
-```sh
-a2p compile --to mihomo ./links.txt
-a2p compile --to xray ./links.txt
-a2p run --binary ./mihomo --to mihomo ./links.txt
-```
-
-Cores:
+### cores
 
 ```sh
 a2p cores install sing-box
-a2p cores list
-a2p cores verify sing-box
-a2p run --to sing-box ./links.txt
-a2p run --to sing-box --core fork ./links.txt
+a2p cores install mihomo
+a2p cores install xray
+a2p cores versions sing-box
+a2p cores update --all
 ```
 
-Forks and direct links:
+forks and direct links:
 
 ```sh
 a2p cores install fork --repo owner/sing-box --bin-name sing-box
 a2p cores install custom --url https://example.com/core.zip --sha256 <hex> --bin-name core
 ```
 
-Subscriptions:
+`--core` picks an installed binary, `--to` picks the config format.
+
+### subscriptions
 
 ```sh
 a2p sub add main https://example.com/sub
@@ -58,7 +58,7 @@ a2p sub refresh main
 a2p run --binary ./sing-box sub:main
 ```
 
-Modes:
+### modes
 
 ```sh
 a2p run --mode auto --binary ./sing-box ./links.txt
@@ -66,71 +66,49 @@ a2p run --mode pool --binary ./sing-box ./links.txt
 a2p run --mode balance --to mihomo ./config.yaml
 ```
 
-Test all proxies, optionally in parallel:
+`balance` needs mihomo or sing-box. xray has no groups.
+
+### test
 
 ```sh
 a2p test --to mihomo ./config.yaml
 a2p test --to sing-box --concurrency 4 ./config.yaml
 ```
 
-mihomo tests run sequentially; `--concurrency` is ignored for mihomo.
+mihomo tests run sequentially. `--concurrency` is ignored for mihomo.
 
-Environment and endpoint checks:
+### sdk
 
-```sh
-a2p doctor
-a2p check socks5://127.0.0.1:1080
-a2p check --url https://example.com socks5://127.0.0.1:1080
-a2p test --to mihomo ./config.yaml
-```
+all sdks talk to `a2pd` over json-rpc.
 
-## SDKs
-
-All SDKs speak JSON-RPC to `a2pd`.
-
-- Go: `sdk/go`
-- Python: `sdk/python`
-- Node: `sdk/node`
-- Rust: `sdk/rust`
+- go: [sdk/go](sdk/go)
+- python: [sdk/python](sdk/python)
+- node: [sdk/node](sdk/node)
+- rust: [sdk/rust](sdk/rust)
 
 ```sh
 go install ./cmd/a2pd
-```
-
-```sh
 printf '{"id":1,"method":"version"}\n' | a2pd
 ```
 
-## C ABI
+### c abi
 
 ```sh
 CGO_ENABLED=1 go build -buildmode=c-shared -o dist/libany2proxy.dll ./cmd/libany2proxy
 python cabi/test.py dist/libany2proxy.dll
 ```
 
-Functions: `a2p_new`, `a2p_call`, `a2p_version`, `a2p_free`, `a2p_close`.
+### docs
 
-## Status
+- [install](docs/guides/install.md)
+- [quickstart](docs/guides/quickstart.md)
+- [troubleshooting](docs/guides/troubleshooting.md)
+- [cores](docs/guides/cores.md)
+- [protocols](docs/protocols.md)
+- [benchmarks](docs/benchmarks.md)
+- [security](docs/security.md)
+- [licensing](docs/licensing.md)
 
-- `parse` handles plain link lists, Clash YAML and subscription URLs.
-- `links` exports vless, vmess, trojan, ss, hysteria2, tuic and anytls links.
-- `test` runs every node through a core and reports status and latency.
-- `compile` emits sing-box JSON, mihomo YAML and Xray JSON.
-- `run` starts a core, prints endpoints and fails over in `auto` mode.
-- `cores` installs from GitHub Releases, verifies sha256, imports local binaries and resolves `--to` automatically.
-- Subscription URLs are DPAPI-encrypted on Windows and mode 0600 elsewhere.
+### license
 
-## Docs
-
-- [Install](docs/guides/install.md)
-- [Quickstart](docs/guides/quickstart.md)
-- [Troubleshooting](docs/guides/troubleshooting.md)
-- [Cores](docs/guides/cores.md)
-- [Benchmarks](docs/benchmarks.md)
-- [Protocols](docs/protocols.md)
-- [Security](docs/security.md)
-- [Licensing](docs/licensing.md)
-
-## License
-
-MIT. Cores: sing-box GPL-3.0, mihomo GPL-3.0, Xray MPL-2.0. See `NOTICE`.
+mit. cores: sing-box gpl-3.0, mihomo gpl-3.0, xray mpl-2.0. see `NOTICE`.

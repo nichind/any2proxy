@@ -1,8 +1,9 @@
-# Licensing
+# licensing
 
-any2proxy [MIT]
+any2proxy is mit.
 
-Includes:
-- sing-box [GPL-3.0]
-- mihomo [GPL-3.0]
-- Xray [MPL-2.0]
+the cores are separate programs:
+
+- sing-box: gpl-3.0
+- mihomo: gpl-3.0
+- xray: mpl-2.0

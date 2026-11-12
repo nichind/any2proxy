@@ -1,10 +1,10 @@
-# Documentation
+# docs
 
-- [Install](guides/install.md)
-- [Quickstart](guides/quickstart.md)
-- [Troubleshooting](guides/troubleshooting.md)
-- [Cores](guides/cores.md)
-- [Benchmarks](benchmarks.md)
-- [Protocols](protocols.md)
-- [Security](security.md)
-- [Licensing](licensing.md)
+- [install](guides/install.md)
+- [quickstart](guides/quickstart.md)
+- [troubleshooting](guides/troubleshooting.md)
+- [cores](guides/cores.md)
+- [protocols](protocols.md)
+- [benchmarks](benchmarks.md)
+- [security](security.md)
+- [licensing](licensing.md)
