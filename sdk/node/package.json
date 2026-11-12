@@ -1,9 +1,32 @@
 {
   "name": "any2proxy",
   "version": "0.1.0",
-  "description": "JSON-RPC client for a2pd",
+  "description": "json-rpc client for the any2proxy daemon",
   "type": "module",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nichind/any2proxy.git",
+    "directory": "sdk/node"
+  },
+  "homepage": "https://github.com/nichind/any2proxy",
+  "bugs": {
+    "url": "https://github.com/nichind/any2proxy/issues"
+  },
+  "keywords": [
+    "proxy",
+    "clash",
+    "sing-box",
+    "mihomo",
+    "xray"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=18"

@@ -3,6 +3,13 @@ name = "any2proxy"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "json-rpc client for the any2proxy daemon"
+repository = "https://github.com/nichind/any2proxy"
+homepage = "https://github.com/nichind/any2proxy"
+readme = "README.md"
+rust-version = "1.75"
+keywords = ["proxy", "clash", "sing-box", "mihomo"]
+categories = ["network-programming", "api-bindings"]
 
 [dependencies]
 serde_json = "1"
