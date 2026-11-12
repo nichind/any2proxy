@@ -6,5 +6,3 @@ the fetch cache stores a url hash, body hash, etag, last-modified and size. not 
 
 private, loopback, link-local and metadata addresses are blocked. `--allow-private` turns
 that off. redirect targets are checked again.
-
-report issues in github security advisories. no live urls or tokens.

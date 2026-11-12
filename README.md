@@ -111,4 +111,4 @@ python cabi/test.py dist/libany2proxy.dll
 
 ### license
 
-mit. cores: sing-box gpl-3.0, mihomo gpl-3.0, xray mpl-2.0. see `NOTICE`.
+see [LICENSE](LICENSE) and [NOTICE](NOTICE).
