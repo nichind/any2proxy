@@ -153,7 +153,6 @@ python cabi/test.py dist/libany2proxy.dll
 - [quickstart](docs/guides/quickstart.md)
 - [troubleshooting](docs/guides/troubleshooting.md)
 - [cores](docs/guides/cores.md)
-- [security](docs/security.md)
 
 ### license
 
